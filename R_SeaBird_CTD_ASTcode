@@ -1,0 +1,262 @@
+######################################################################################
+######################################################################################
+######################################################################################
+###                                                                                ###
+###                               Seabird CTD Data                                 ###
+###                            by Alexandra Steckbauer                             ###
+###                                                                                ###
+######################################################################################
+######################################################################################
+######################################################################################
+
+
+### Set working directory
+path <- "/Users/.../R_Seabird_CTD/"
+setwd(path)
+getwd()
+
+
+######################################################################################
+
+### Install and LOAD LIBRARYs
+
+install.packages("oce")
+library(oce)
+install.packages("ggplot2")
+library(ggplot2)
+install.packages("ddalpha")
+library(ddalpha)
+
+
+####################################################################################
+
+### Reading and preparing the CTD files
+# Don't forget to change the name of the file for each cast you are processing
+# (in row 37, 41, 44, and 248)
+
+CTD.CNV <- read.ctd(file = "/Users/.../R_Seabird_CTD/OXR...007.cnv",
+                   header = FALSE, sep = "", dec = ".")
+
+# Save as CSV file
+oce.write.table(CTD.CNV, file = "/Users/.../R_Seabird_CTD/OXR...007.csv")
+
+# Read the CSV files
+df.CTD <- read.csv("/Users/.../R_Seabird_CTD/OXR...007.csv", header = TRUE, sep = " ")
+
+
+# Check that the dataframe is ok, and you don't get any error messages
+head(df.CTD)
+tail(df.CTD)
+summary(df.CTD)
+
+
+######################################################################################
+
+### CLEANING STEPS
+
+# Change Column Names
+names <- c("Time", "Pressure", "Temperature1", "Temperature2", "Conductivity1", "Conductivity2", "Bean.Attenuation",
+           "Bean.Transmition", "Fluorescence", "Altimeter", "Depth", "Potential.Temprature1", "Potential.Temprature2", 
+           "Oxygen1ml.l", "Oxygen1umol.kg", "Oxygen1.saturation", "Oxygen2ml.l", "Oxygen2umol.kg", "Oxygen2.saturation", 
+           "Density1", "Density2", "Sound.Velocity1", "Sound.Velocity2", "Salinity.Practical1","Salinity.Practical2",
+           "Temperature.Difference", "Conductivity.Difference", "Salinity.Practical.Difference", "Flag")
+colnames(df.CTD) = names
+
+# Remove first 3 meters of the dataset
+df.CTD_Depthcut <- subset(df.CTD, Depth > 3)
+
+# Remove Oxygen values < 0 from the dataset
+df.CTD_O2Cut <- subset(df.CTD_Depthcut, Oxygen1umol.kg > 0)
+df.CTD_O2Cut <- subset(df.CTD_O2Cut, Oxygen2umol.kg > 0)
+
+
+######################################################################################
+
+### SECURITY CHECK
+# To double-check that data from sensor 1 and 2 are the same (per parameter),
+# please check all the plots.
+# If you still see outlayers or if the 2 sensors are completely 
+# different, please contact me (Alexandra).
+
+# Check if you missed outlayers - Oxygen µmol/kg
+ggplot(data = df.CTD_O2Cut) +
+  geom_point(aes(x = Oxygen1umol.kg, y = Depth), color = "black") + 
+  geom_point(aes(x = Oxygen2umol.kg, y = Depth), color = "red") + 
+  scale_y_continuous(trans = "reverse")
+
+# Check if you missed outlayers - Oxygen %Sat
+ggplot(data = df.CTD_O2Cut) +
+  geom_point(aes(x = Oxygen1.saturation, y = Depth), color = "black") + 
+  geom_point(aes(x = Oxygen2.saturation, y = Depth), color = "red") + 
+  scale_y_continuous(trans = "reverse")
+
+# Check if you missed outlayers - Temperature
+ggplot(data = df.CTD_O2Cut) +
+  geom_point(aes(x = Temperature1, y = Depth), color = "black") + 
+  geom_point(aes(x = Temperature2, y = Depth), color = "red") + 
+  scale_y_continuous(trans = "reverse")
+
+# Check if you missed outlayers - Salinity
+ggplot(data = df.CTD_O2Cut) +
+  geom_point(aes(x = Salinity.Practical1, y = Depth), color = "black") + 
+  geom_point(aes(x = Salinity.Practical2, y = Depth), color = "red") + 
+  scale_y_continuous(trans = "reverse")
+
+# Check if you missed outlayers - Density
+ggplot(data = df.CTD_O2Cut) +
+  geom_point(aes(x = Density1, y = Depth), color = "black") + 
+  geom_point(aes(x = Density2, y = Depth), color = "red") + 
+  scale_y_continuous(trans = "reverse")
+
+# Check if you missed outlayers - Fluorescence
+ggplot(data = df.CTD_O2Cut) +
+  geom_point(aes(x = Fluorescence, y = Depth)) + 
+  scale_y_continuous(trans = "reverse")
+
+# Check if you missed outlayers - Bean.Attenuation (as measure of Turbidity)
+ggplot(data = df.CTD_O2Cut) +
+  geom_point(aes(x = Bean.Attenuation, y = Depth)) + 
+  scale_y_continuous(trans = "reverse")
+
+
+######################################################################################
+
+# Check for Max depth to know if you have 2 or 3 Depth Ranges
+max(df.CTD_O2Cut$Depth)
+# [1] 2227.97
+
+### Sub-set to the different Depth Ranges required (either 2 or 3 ranges)
+set_CTD1 <- subset(df.CTD_O2Cut, Depth > 3 & Depth < 180)
+set_CTD2 <- subset(df.CTD_O2Cut, Depth > 180.001 & Depth < 1000)  # change maximum depth value accordingly
+set_CTD3 <- subset(df.CTD_O2Cut, Depth > 1000.001)   # change maximum depth value accordingly (step not needed for casts <1000 meters)
+
+
+######################################################################################
+######################################################################################
+######################################################################################
+
+### Summarize data by Depth Range to calculate Mean, Median, Min, Max, N
+
+### Depth Range: 3 - 180 meters
+# Remove columns that are not needed
+set_CTD1 <- set_CTD1[, -c(1, 2, 4:6, 8, 10:11, 12:14, 17:19, 21:23, 25:29)]
+set_CTD1.summary <- describe(set_CTD1)
+CTD.Shallow.summary <- set_CTD1.summary[, -c(1, 4, 6:7, 10:13)]
+CTD.Shallow.summary
+
+
+######################################################################################
+
+### Depth Range: 180 - 1000 meters (or bottom)
+# Remove columns that are not needed
+set_CTD2 <- set_CTD2[, -c(1, 2, 4:6, 8, 10:11, 12:14, 17:19, 21:23, 25:29)]
+set_CTD2.summary <- describe(set_CTD2)
+CTD.Intermediate.summary <- set_CTD2.summary[, -c(1, 4, 6:7, 10:13)]
+CTD.Intermediate.summary
+
+
+######################################################################################
+
+### Depth Range: 1000 - bottom          - not needed for casts <1000m
+# Remove columns that are not needed
+set_CTD3 <- set_CTD3[, -c(1, 2, 4:6, 8, 10:11, 12:14, 17:19, 21:23, 25:29)]
+set_CTD3.summary <- describe(set_CTD3)
+CTD.Deep.summary <- set_CTD3.summary[, -c(1, 4, 6:7, 10:13)]
+CTD.Deep.summary
+
+
+
+# Double-check that you get a summary table like this for each Depth Range, and no error messages:
+#                       n   mean median    min    max
+# Temperature1        356  22.99  22.63  22.03  24.63
+# Bean.Attenuation    356   3.38   3.38   3.37   3.39
+# Fluorescence        356   0.37   0.27   0.11   0.96
+# Oxygen1umol.kg      356 194.98 197.61 170.80 209.17
+# Oxygen1.saturation  356  94.43  95.05  81.39 102.56
+# Density1            356  27.99  28.10  27.42  28.37
+# Salinity.Practical1 356  40.34  40.33  40.24  40.46
+
+
+######################################################################################
+######################################################################################
+######################################################################################
+
+### FINAL OUTPUT FILE - Preparation
+
+# Depth Range 1 - 3 - 180 meters
+CTD.Shallow.vec <- as.vector(t(CTD.Shallow.summary))
+CTD.Shallow.vec
+
+# Depth Range 2 - 180 - 1000 meters (or bottom)
+CTD.Intermediate.vec <- as.vector(t(CTD.Intermediate.summary))
+CTD.Intermediate.vec
+
+# Depth Range 3 - 1000 - bottom - not needed for casts <1000m
+CTD.Deep.vec <- as.vector(t(CTD.Deep.summary))
+CTD.Deep.vec
+
+
+######################################################################################
+
+# Make final dataframe - 2 Depth Ranges:
+final <- data.frame(CTD.Shallow.vec, CTD.Intermediate.vec)   # Remove the last depth of shallower than 1000 meters
+final
+final <- t(final)
+final
+# Add your name to the dataframe
+Name <- c('Alexandra', 'Alexandra')   # Change name
+final <- cbind(final, Name)
+# Set Row and Column names
+rownames(final) <- c("Shallow 3-180m","Intermediate 180-bottom")
+colnames(final) <- c('Temperature1.N','Temperature1.Mean','Temperature1.Median','Temperature1.Min','Temperature1.Max',
+                     'Bean.Attenuation.N','Bean.Attenuation.Mean','Bean.Attenuation.Median','Bean.Attenuation.Min','Bean.Attenuation.Max',
+                     'Fluorescence.N','Fluorescence.Mean','Fluorescence.Median','Fluorescence.Min','Fluorescence.Max',
+                     'Oxygen1umol.kg.N','Oxygen1umol.kg.Mean','Oxygen1umol.kg.Median','Oxygen1umol.kg.Min','Oxygen1umol.kg.Max',
+                     'Oxygen1.saturation.N','Oxygen1.saturation.Mean','Oxygen1.saturation.Median','Oxygen1.saturation.Min','Oxygen1.saturation.Max',
+                     'Density1.N','Density1.Mean','Density1.Median','Density1.Min','Density1.Max',
+                     'Salinity.Practical1.N','Salinity.Practical1.Mean','Salinity.Practical1.Median','Salinity.Practical1.Min','Salinity.Practical1.Max',
+                     'Name')
+final   # Check again that the final file is ok before saving
+
+
+
+# OR:
+
+# Make final dataframe - 3 Depth Ranges:
+final <- data.frame(CTD.Shallow.vec, CTD.Intermediate.vec, CTD.Deep.vec)
+final
+final <- t(final)
+final
+# Add your name to the dataframe
+Name <- c('Alexandra', 'Alexandra', 'Alexandra')   # Change name
+final <- cbind(final, Name)
+# Set Row and Column names
+rownames(final) <- c("Shallow 3-180m","Intermediate 180-1000m","Deep 1000m-bottom")
+colnames(final) <- c('Temperature1.N','Temperature1.Mean','Temperature1.Median','Temperature1.Min','Temperature1.Max',
+                     'Bean.Attenuation.N','Bean.Attenuation.Mean','Bean.Attenuation.Median','Bean.Attenuation.Min','Bean.Attenuation.Max',
+                     'Fluorescence.N','Fluorescence.Mean','Fluorescence.Median','Fluorescence.Min','Fluorescence.Max',
+                     'Oxygen1umol.kg.N','Oxygen1umol.kg.Mean','Oxygen1umol.kg.Median','Oxygen1umol.kg.Min','Oxygen1umol.kg.Max',
+                     'Oxygen1.saturation.N','Oxygen1.saturation.Mean','Oxygen1.saturation.Median','Oxygen1.saturation.Min','Oxygen1.saturation.Max',
+                     'Density1.N','Density1.Mean','Density1.Median','Density1.Min','Density1.Max',
+                     'Salinity.Practical1.N','Salinity.Practical1.Mean','Salinity.Practical1.Median','Salinity.Practical1.Min','Salinity.Practical1.Max',
+                     'Name')
+final   # Check again that the final file is ok before saving
+
+
+
+### Save file
+write.csv(final, "/Users/.../R_Seabird_CTD/OXR...007.final.csv", row.names = TRUE)
+
+
+### Open the final CSV file in Excel, and copy-paste the data rows into the spreadsheet Larissa provided.
+
+# Clear the "Environment/History" and "Information" Panel in RStudio.
+# Change CTD file name in the code and start from the beginning.
+
+
+### Congratulations, you did it!!! :-)
+
+
+######################################################################################
+######################################################################################
+######################################################################################
