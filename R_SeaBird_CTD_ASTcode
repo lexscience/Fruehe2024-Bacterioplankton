@@ -2,6 +2,7 @@
 ######################################################################################
 ######################################################################################
 ###                                                                                ###
+###                                  OceanX RSDE                                   ###
 ###                               Seabird CTD Data                                 ###
 ###                            by Alexandra Steckbauer                             ###
 ###                                                                                ###
@@ -11,7 +12,7 @@
 
 
 ### Set working directory
-path <- "/Users/.../R_Seabird_CTD/"
+path <- "/Users/steckba/Downloads/R_Seabird_CTD/"
 setwd(path)
 getwd()
 
@@ -20,28 +21,32 @@ getwd()
 
 ### Install and LOAD LIBRARYs
 
-install.packages("oce")
+# install.packages("oce")
 library(oce)
-install.packages("ggplot2")
+# install.packages("ggplot2")
 library(ggplot2)
-install.packages("ddalpha")
+#install.packages("ddalpha")
 library(ddalpha)
+#install.packages("dplyr")
+library(dplyr)
+#install.packages("psych")
+library(psych)
 
 
 ####################################################################################
 
 ### Reading and preparing the CTD files
 # Don't forget to change the name of the file for each cast you are processing
-# (in row 37, 41, 44, and 248)
+# (in row 38, 42, 45, and 247)
 
-CTD.CNV <- read.ctd(file = "/Users/.../R_Seabird_CTD/OXR...007.cnv",
+CTD.CNV <- read.ctd(file = "/Users/steckba/Downloads/R_Seabird_CTD/OXR20220204_CTD_0205_001_up.cnv",
                    header = FALSE, sep = "", dec = ".")
 
 # Save as CSV file
-oce.write.table(CTD.CNV, file = "/Users/.../R_Seabird_CTD/OXR...007.csv")
+oce.write.table(CTD.CNV, file = "/Users/steckba/Downloads/R_Seabird_CTD/OXR20220204_CTD_0205_001_up.csv")
 
 # Read the CSV files
-df.CTD <- read.csv("/Users/.../R_Seabird_CTD/OXR...007.csv", header = TRUE, sep = " ")
+df.CTD <- read.csv("/Users/steckba/Downloads/R_Seabird_CTD/OXR20220204_CTD_0205_001_up.csv", header = TRUE, sep = " ")
 
 
 # Check that the dataframe is ok, and you don't get any error messages
@@ -55,20 +60,19 @@ summary(df.CTD)
 ### CLEANING STEPS
 
 # Change Column Names
-names <- c("Time", "Pressure", "Temperature1", "Temperature2", "Conductivity1", "Conductivity2", "Bean.Attenuation",
-           "Bean.Transmition", "Fluorescence", "Altimeter", "Depth", "Potential.Temprature1", "Potential.Temprature2", 
-           "Oxygen1ml.l", "Oxygen1umol.kg", "Oxygen1.saturation", "Oxygen2ml.l", "Oxygen2umol.kg", "Oxygen2.saturation", 
-           "Density1", "Density2", "Sound.Velocity1", "Sound.Velocity2", "Salinity.Practical1","Salinity.Practical2",
-           "Temperature.Difference", "Conductivity.Difference", "Salinity.Practical.Difference", "Flag")
+names <- c("Time", "Pressure", "Temperature1", "Temperature2", "Conductivity1", "Conductivity2", "BeamAttenuation",
+           "BeamTransmition", "Fluorescence", "Altimeter", "Depth", "PotentialTemprature1", "PotentialTemprature2", 
+           "Oxygen1mll", "Oxygen1umolkg", "Oxygen1saturation", "Oxygen2mll", "Oxygen2umolkg", "Oxygen2saturation", 
+           "Density1", "Density2", "SoundVelocity1", "SoundVelocity2", "SalinityPractical1","SalinityPractical2",
+           "TemperatureDifference", "ConductivityDifference", "SalinityPracticalDifference", "Flag")
 colnames(df.CTD) = names
 
 # Remove first 3 meters of the dataset
-df.CTD_Depthcut <- subset(df.CTD, Depth > 3)
+#df.CTD_Depthcut <- subset(df.CTD, Depth > 3)
 
 # Remove Oxygen values < 0 from the dataset
-df.CTD_O2Cut <- subset(df.CTD_Depthcut, Oxygen1umol.kg > 0)
-df.CTD_O2Cut <- subset(df.CTD_O2Cut, Oxygen2umol.kg > 0)
-
+df.CTD_O2Cut <- subset(df.CTD, Oxygen1umolkg > 0)
+df.CTD_O2Cut <- subset(df.CTD_O2Cut, Oxygen2umolkg > 0)
 
 ######################################################################################
 
@@ -80,14 +84,14 @@ df.CTD_O2Cut <- subset(df.CTD_O2Cut, Oxygen2umol.kg > 0)
 
 # Check if you missed outlayers - Oxygen µmol/kg
 ggplot(data = df.CTD_O2Cut) +
-  geom_point(aes(x = Oxygen1umol.kg, y = Depth), color = "black") + 
-  geom_point(aes(x = Oxygen2umol.kg, y = Depth), color = "red") + 
+  geom_point(aes(x = Oxygen1umolkg, y = Depth), color = "black") + 
+  geom_point(aes(x = Oxygen2umolkg, y = Depth), color = "red") + 
   scale_y_continuous(trans = "reverse")
 
 # Check if you missed outlayers - Oxygen %Sat
 ggplot(data = df.CTD_O2Cut) +
-  geom_point(aes(x = Oxygen1.saturation, y = Depth), color = "black") + 
-  geom_point(aes(x = Oxygen2.saturation, y = Depth), color = "red") + 
+  geom_point(aes(x = Oxygen1saturation, y = Depth), color = "black") + 
+  geom_point(aes(x = Oxygen2saturation, y = Depth), color = "red") + 
   scale_y_continuous(trans = "reverse")
 
 # Check if you missed outlayers - Temperature
@@ -98,8 +102,8 @@ ggplot(data = df.CTD_O2Cut) +
 
 # Check if you missed outlayers - Salinity
 ggplot(data = df.CTD_O2Cut) +
-  geom_point(aes(x = Salinity.Practical1, y = Depth), color = "black") + 
-  geom_point(aes(x = Salinity.Practical2, y = Depth), color = "red") + 
+  geom_point(aes(x = SalinityPractical1, y = Depth), color = "black") + 
+  geom_point(aes(x = SalinityPractical2, y = Depth), color = "red") + 
   scale_y_continuous(trans = "reverse")
 
 # Check if you missed outlayers - Density
@@ -113,9 +117,9 @@ ggplot(data = df.CTD_O2Cut) +
   geom_point(aes(x = Fluorescence, y = Depth)) + 
   scale_y_continuous(trans = "reverse")
 
-# Check if you missed outlayers - Bean.Attenuation (as measure of Turbidity)
+# Check if you missed outlayers - BeamAttenuation (as measure of Turbidity)
 ggplot(data = df.CTD_O2Cut) +
-  geom_point(aes(x = Bean.Attenuation, y = Depth)) + 
+  geom_point(aes(x = BeamAttenuation, y = Depth)) + 
   scale_y_continuous(trans = "reverse")
 
 
@@ -126,6 +130,9 @@ max(df.CTD_O2Cut$Depth)
 # [1] 2227.97
 
 ### Sub-set to the different Depth Ranges required (either 2 or 3 ranges)
+
+####----Important: please adjust opening and closing depths of each layer from the sample overview sheet----###
+
 set_CTD1 <- subset(df.CTD_O2Cut, Depth > 3 & Depth < 180)
 set_CTD2 <- subset(df.CTD_O2Cut, Depth > 180.001 & Depth < 1000)  # change maximum depth value accordingly
 set_CTD3 <- subset(df.CTD_O2Cut, Depth > 1000.001)   # change maximum depth value accordingly (step not needed for casts <1000 meters)
@@ -164,17 +171,15 @@ set_CTD3.summary <- describe(set_CTD3)
 CTD.Deep.summary <- set_CTD3.summary[, -c(1, 4, 6:7, 10:13)]
 CTD.Deep.summary
 
-
-
 # Double-check that you get a summary table like this for each Depth Range, and no error messages:
 #                       n   mean median    min    max
 # Temperature1        356  22.99  22.63  22.03  24.63
-# Bean.Attenuation    356   3.38   3.38   3.37   3.39
+# BeamAttenuation    356   3.38   3.38   3.37   3.39
 # Fluorescence        356   0.37   0.27   0.11   0.96
-# Oxygen1umol.kg      356 194.98 197.61 170.80 209.17
-# Oxygen1.saturation  356  94.43  95.05  81.39 102.56
+# Oxygen1umolkg      356 194.98 197.61 170.80 209.17
+# Oxygen1saturation  356  94.43  95.05  81.39 102.56
 # Density1            356  27.99  28.10  27.42  28.37
-# Salinity.Practical1 356  40.34  40.33  40.24  40.46
+# SalinityPractical1 356  40.34  40.33  40.24  40.46
 
 
 ######################################################################################
@@ -207,14 +212,14 @@ final
 Name <- c('Alexandra', 'Alexandra')   # Change name
 final <- cbind(final, Name)
 # Set Row and Column names
-rownames(final) <- c("Shallow 3-180m","Intermediate 180-bottom")
-colnames(final) <- c('Temperature1.N','Temperature1.Mean','Temperature1.Median','Temperature1.Min','Temperature1.Max',
-                     'Bean.Attenuation.N','Bean.Attenuation.Mean','Bean.Attenuation.Median','Bean.Attenuation.Min','Bean.Attenuation.Max',
-                     'Fluorescence.N','Fluorescence.Mean','Fluorescence.Median','Fluorescence.Min','Fluorescence.Max',
-                     'Oxygen1umol.kg.N','Oxygen1umol.kg.Mean','Oxygen1umol.kg.Median','Oxygen1umol.kg.Min','Oxygen1umol.kg.Max',
-                     'Oxygen1.saturation.N','Oxygen1.saturation.Mean','Oxygen1.saturation.Median','Oxygen1.saturation.Min','Oxygen1.saturation.Max',
-                     'Density1.N','Density1.Mean','Density1.Median','Density1.Min','Density1.Max',
-                     'Salinity.Practical1.N','Salinity.Practical1.Mean','Salinity.Practical1.Median','Salinity.Practical1.Min','Salinity.Practical1.Max',
+rownames(final) <- c("Epipelagic","Mesopelagic")
+colnames(final) <- c('Temperature1_N','Temperature1_Mean','Temperature1_Median','Temperature1_Min','Temperature1_Max',
+                     'BeamAttenuation_N','BeamAttenuation_Mean','BeamAttenuation_Median','BeamAttenuation_Min','BeamAttenuation_Max',
+                     'Fluorescence_N','Fluorescence_Mean','Fluorescence_Median','Fluorescence_Min','Fluorescence_Max',
+                     'Oxygen1umolkg_N','Oxygen1umolkg_Mean','Oxygen1umolkg_Median','Oxygen1umolkg_Min','Oxygen1umolkg_Max',
+                     'Oxygen1saturation_N','Oxygen1saturation_Mean','Oxygen1saturation_Median','Oxygen1saturation_Min','Oxygen1saturation_Max',
+                     'Density1_N','Density1_Mean','Density1_Median','Density1_Min','Density1_Max',
+                     'SalinityPractical1_N','SalinityPractical1_Mean','SalinityPractical1_Median','SalinityPractical1_Min','SalinityPractical1_Max',
                      'Name')
 final   # Check again that the final file is ok before saving
 
@@ -231,22 +236,24 @@ final
 Name <- c('Alexandra', 'Alexandra', 'Alexandra')   # Change name
 final <- cbind(final, Name)
 # Set Row and Column names
-rownames(final) <- c("Shallow 3-180m","Intermediate 180-1000m","Deep 1000m-bottom")
-colnames(final) <- c('Temperature1.N','Temperature1.Mean','Temperature1.Median','Temperature1.Min','Temperature1.Max',
-                     'Bean.Attenuation.N','Bean.Attenuation.Mean','Bean.Attenuation.Median','Bean.Attenuation.Min','Bean.Attenuation.Max',
-                     'Fluorescence.N','Fluorescence.Mean','Fluorescence.Median','Fluorescence.Min','Fluorescence.Max',
-                     'Oxygen1umol.kg.N','Oxygen1umol.kg.Mean','Oxygen1umol.kg.Median','Oxygen1umol.kg.Min','Oxygen1umol.kg.Max',
-                     'Oxygen1.saturation.N','Oxygen1.saturation.Mean','Oxygen1.saturation.Median','Oxygen1.saturation.Min','Oxygen1.saturation.Max',
-                     'Density1.N','Density1.Mean','Density1.Median','Density1.Min','Density1.Max',
-                     'Salinity.Practical1.N','Salinity.Practical1.Mean','Salinity.Practical1.Median','Salinity.Practical1.Min','Salinity.Practical1.Max',
+rownames(final) <- c("Epipelagic","Mesopelagic","Bathypelagic")
+colnames(final) <- c('Temperature1_N','Temperature1_Mean','Temperature1_Median','Temperature1_Min','Temperature1_Max',
+                     'BeamAttenuation_N','BeamAttenuation_Mean','BeamAttenuation_Median','BeamAttenuation_Min','BeamAttenuation_Max',
+                     'Fluorescence_N','Fluorescence_Mean','Fluorescence_Median','Fluorescence_Min','Fluorescence_Max',
+                     'Oxygen1umolkg_N','Oxygen1umolkg_Mean','Oxygen1umolkg_Median','Oxygen1umolkg_Min','Oxygen1umolkg_Max',
+                     'Oxygen1saturation_N','Oxygen1saturation_Mean','Oxygen1saturation_Median','Oxygen1saturation_Min','Oxygen1saturation_Max',
+                     'Density1_N','Density1_Mean','Density1_Median','Density1_Min','Density1_Max',
+                     'SalinityPractical1_N','SalinityPractical1_Mean','SalinityPractical1_Median','SalinityPractical1_Min','SalinityPractical1_Max',
                      'Name')
 final   # Check again that the final file is ok before saving
 
 
 
 ### Save file
-write.csv(final, "/Users/.../R_Seabird_CTD/OXR...007.final.csv", row.names = TRUE)
+write.csv(final, "/Users/steckba/Downloads/R_Seabird_CTD/OXR20220204_CTD_0205_001_up.final.csv", row.names = TRUE)
 
+##saveEnvironment
+saveRDS("CASTNAME", set_CTD1,[...])
 
 ### Open the final CSV file in Excel, and copy-paste the data rows into the spreadsheet Larissa provided.
 
@@ -255,6 +262,13 @@ write.csv(final, "/Users/.../R_Seabird_CTD/OXR...007.final.csv", row.names = TRU
 
 
 ### Congratulations, you did it!!! :-)
+
+
+
+### The code is uploaded to my GitHub profile (for now set to "Private")
+# Please cite the following link:
+# https://urldefense.com/v3/__https://github.com/steckbauera/SeaBird_CTD_ASTcode/blob/main/R_SeaBird_CTD_ASTcode__;!!Nmw4Hv0!3iIpBeuc4tRNcmqYvPRKVYFctZwiw7tglnZvwsZ2n2YOlm7FOekFW6uTBQ5dFfD_wELxF6NpWZ7xJAPIf2S53-mASIWiq-w0QQTSo8Q$ 
+
 
 
 ######################################################################################
