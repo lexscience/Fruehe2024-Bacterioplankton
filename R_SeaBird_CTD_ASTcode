@@ -12,7 +12,7 @@
 
 
 ### Set working directory
-path <- "/Users/steckba/Downloads/R_Seabird_CTD/"
+path <- "/Users/.../R_Seabird_CTD/"
 setwd(path)
 getwd()
 
@@ -39,14 +39,14 @@ library(psych)
 # Don't forget to change the name of the file for each cast you are processing
 # (in row 38, 42, 45, and 247)
 
-CTD.CNV <- read.ctd(file = "/Users/steckba/Downloads/R_Seabird_CTD/OXR20220204_CTD_0205_001_up.cnv",
+CTD.CNV <- read.ctd(file = "/Users/.../R_Seabird_CTD/OXR..._up.cnv",
                    header = FALSE, sep = "", dec = ".")
 
 # Save as CSV file
-oce.write.table(CTD.CNV, file = "/Users/steckba/Downloads/R_Seabird_CTD/OXR20220204_CTD_0205_001_up.csv")
+oce.write.table(CTD.CNV, file = "/Users/.../R_Seabird_CTD/OXR..._up.csv")
 
 # Read the CSV files
-df.CTD <- read.csv("/Users/steckba/Downloads/R_Seabird_CTD/OXR20220204_CTD_0205_001_up.csv", header = TRUE, sep = " ")
+df.CTD <- read.csv("/Users/.../R_Seabird_CTD/OXR..._up.csv", header = TRUE, sep = " ")
 
 
 # Check that the dataframe is ok, and you don't get any error messages
@@ -250,7 +250,7 @@ final   # Check again that the final file is ok before saving
 
 
 ### Save file
-write.csv(final, "/Users/steckba/Downloads/R_Seabird_CTD/OXR20220204_CTD_0205_001_up.final.csv", row.names = TRUE)
+write.csv(final, "/Users/.../R_Seabird_CTD/OXR...up.final.csv", row.names = TRUE)
 
 ##saveEnvironment
 saveRDS("CASTNAME", set_CTD1,[...])
