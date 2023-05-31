@@ -250,10 +250,12 @@ final   # Check again that the final file is ok before saving
 
 
 ### Save file
-write.csv(final, "/Users/.../R_Seabird_CTD/OXR...up.final.csv", row.names = TRUE)
+write.csv(final, "/Users/.../R_Seabird_CTD/OXR...up_final.csv", row.names = TRUE)
 
-##saveEnvironment
-saveRDS("CASTNAME", set_CTD1,[...])
+
+## Save Environment
+saveRDS(final, "/Users/.../R_Seabird_CTD/OXR...up_final.rds")
+
 
 ### Open the final CSV file in Excel, and copy-paste the data rows into the spreadsheet Larissa provided.
 
