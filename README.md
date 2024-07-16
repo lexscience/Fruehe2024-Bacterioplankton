@@ -18,6 +18,9 @@ All code used to analyse and visualise data is stored in this GitHub repository.
 
 ## Sequence data processing
 
+## Water chemistry data processing
+The code for processing and averaging CTD raw data from all 108 stations can be found here https://github.com/lexscience/Particle-associated-bacterioplankton-2024_upstream/blob/main/R_SeaBird_CTD_ASTcode
+
 
 ## Contact
 Project lead by  [@lexscience] - larissa.fruehe@oceanx.org. All repositories created and curated by [@lexscience]. 
