@@ -1,0 +1,228 @@
+#### Script RSDE 2022 Bottlenet samples
+#### Bacterial metabarcoding with Herlemann 2011 primers, V3V4 16S SSU rRNA gene ####
+#### Improvements & Pipelining ####
+#### 04.06.2023 L.A.F. ####
+
+
+library(dada2)
+library(ShortRead)
+library(Biostrings)
+library(ggplot2)
+library(phyloseq)
+library(plyr)
+library(beepr)
+
+# Set the working directory to folder where sample files (.txt) are located.
+setwd("demultiplex")
+# Extract the headers of the sample table in the file.
+table <- read.csv(file="namelist_RSW.csv", header = T)
+# Extract the "Descrription" column which contains the actual names of the sample
+new.names <- table$newname
+# Extract target .txt files and rename to Description name.
+old.names <- table$oldname
+file.rename(from=old.names, to=new.names)
+
+# set file paths
+### change main path accordingly 
+path <- "/Users/fruehel/Documents/work/Bacteria_Projects/WaterSamples/data/" 
+path.demultiplex <- file.path(path, "demultiplex")
+if(!dir.exists(path.demultiplex)) dir.create(path.demultiplex)
+path.filt <- file.path(path, "filtered")
+if(!dir.exists(path.filt)) dir.create(path.filt)
+path.cut <- file.path(path, "cutadapt")
+if(!dir.exists(path.cut)) dir.create(path.cut)
+
+list.files(path.demultiplex)
+# generate matched lists of the forward and reverse read files, as well as parsing out the sample name
+fnFs <- sort(list.files(path.demultiplex, pattern = "R1.fastq.gz", full.names = TRUE))
+fnRs <- sort(list.files(path.demultiplex, pattern = "R2.fastq.gz", full.names = TRUE))
+
+# set primers for each dataset
+#V3V4
+FWD <- "CCTACGGGNGGCWGCAG"
+REV <- "GACTACHVGGGTATCTAATCC" 
+
+#to ensure we have the right primers, and the correct orientation of the primers on the reads, we will verify the presence and orientation of these primers in the data.
+allOrients <- function(primer) {
+  # Create all orientations of the input sequence
+  require(Biostrings)
+  dna <- DNAString(primer)  # The Biostrings works w/ DNAString objects rather than character vectors
+  orients <- c(Forward = dna, Complement = complement(dna), Reverse = reverse(dna), 
+               RevComp = reverseComplement(dna))
+  return(sapply(orients, toString))  # Convert back to character vector
+}
+FWD.orients <- allOrients(FWD)
+REV.orients <- allOrients(REV)
+
+# Calculate number of reads containing forward and reverse primer sequences (considering all possible primer orientations. Only exact matches are found.).
+# Only one set of paired end fastq.gz files will be checked (first sample in this case).
+# This is is sufficient, assuming all the files were created using the same library preparation.
+
+primerHits <- function(primer, fn) {
+  # Counts number of reads in which the primer is found
+  nhits <- vcountPattern(primer, sread(readFastq(fn)), fixed = FALSE)
+  return(sum(nhits > 0))
+}
+
+rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs[[1]]), 
+      FWD.ReverseReads = sapply(FWD.orients, primerHits, fn = fnRs[[1]]), 
+      REV.ForwardReads = sapply(REV.orients, primerHits, fn = fnFs[[1]]), 
+      REV.ReverseReads = sapply(REV.orients, primerHits, fn = fnRs[[1]]))
+
+get.sample.name <- function(fname) strsplit(basename(fname), "-")[[1]][1]
+sample.names <- unname(sapply(fnFs, get.sample.name))
+head(sample.names)
+
+##### remove primers with cutadapt in R #######
+
+cutadapt <- "/Users/fruehel/.local/bin/cutadapt" # CHANGE ME to the cutadapt path on your machine
+system2(cutadapt, args = "--version") # Run shell commands from R
+  
+fnFs.cut <- file.path(path.cut, paste0(sample.names, "_cut-R1.fastq.gz"))
+fnRs.cut <- file.path(path.cut, paste0(sample.names, "_cut-R2.fastq.gz"))
+  
+FWD.RC <- dada2:::rc(FWD)
+REV.RC <- dada2:::rc(REV)
+# Trim FWD and the reverse-complement of REV off of R1 (forward reads)
+R1.flags <- paste("-g", FWD, "-a", REV.RC) 
+# Trim REV and the reverse-complement of FWD off of R2 (reverse reads)
+R2.flags <- paste("-G", REV, "-A", FWD.RC) 
+# Run Cutadapt
+  for(i in seq_along(fnFs)) {
+    system2(cutadapt, args = c("-e 0.07 --discard-untrimmed", R1.flags, R2.flags, "-n", 2, # -n 2 required to remove FWD and REV from reads
+                               "-o", fnFs.cut[i], "-p", fnRs.cut[i], # output files
+                               fnFs[i], fnRs[i], "--info-file=info.tsv", # input files
+                               "-m", 20)) #remove too short or empty sequences
+  }
+
+# sanity check
+rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs.cut[[1]]), 
+      FWD.ReverseReads = sapply(FWD.orients, primerHits, fn = fnRs.cut[[1]]), 
+      REV.ForwardReads = sapply(REV.orients, primerHits, fn = fnFs.cut[[1]]), 
+      REV.ReverseReads = sapply(REV.orients, primerHits, fn = fnRs.cut[[1]]))
+
+# Forward and reverse fastq filenames have the format:
+cutFs <- sort(list.files(path.cut, pattern = "R1.fastq.gz", full.names = TRUE))
+cutRs <- sort(list.files(path.cut, pattern = "R2.fastq.gz", full.names = TRUE))
+
+if(length(cutFs) == length(cutRs)) print("Forward and reverse files match. Go forth and explore")
+if(length(cutFs) != length(cutRs)) stop("Forward and reverse files do not match. Better go back and have a check")
+
+# Extract sample names, assuming filenames have format:
+get.sample.name <- function(fname) strsplit(basename(fname), "-")[[1]][1]
+sample.names <- unname(sapply(cutFs, get.sample.name))
+head(sample.names)
+
+if(length(cutFs) <= 20) {
+  fwd_qual_plots<-plotQualityProfile(cutFs) + 
+    scale_x_continuous(breaks=seq(0,300,20)) + 
+    scale_y_continuous(breaks=seq(0,40,5)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    geom_hline(yintercept = 30)
+  rev_qual_plots<-plotQualityProfile(cutRs) + 
+    scale_x_continuous(breaks=seq(0,300,20)) + 
+    scale_y_continuous(breaks=seq(0,40,5)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    geom_hline(yintercept = 30)
+} else {
+  rand_samples <- sample(size = 20, 1:length(cutFs)) # grab 20 random samples to plot
+  fwd_qual_plots <- plotQualityProfile(cutFs[rand_samples]) + 
+    scale_x_continuous(breaks=seq(0,300,20)) + 
+    scale_y_continuous(breaks=seq(0,40,5)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    geom_hline(yintercept = 30)
+  rev_qual_plots <- plotQualityProfile(cutRs[rand_samples]) + 
+    scale_x_continuous(breaks=seq(0,300,20)) + 
+    scale_y_continuous(breaks=seq(0,40,5)) +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+    geom_hline(yintercept = 30)
+}
+fwd_qual_plots
+rev_qual_plots
+
+jpeg(file="Qual_forward.jpg",res=300, width=15, height=8, units="in")
+fwd_qual_plots
+dev.off()
+jpeg(file="Qual_reverse.jpg",res=300, width=15, height=8, units="in")
+rev_qual_plots
+dev.off()
+
+# Forward and reverse fastq filenames have the format:
+cutFs <- sort(list.files(path.cut, pattern = "cut-R1.fastq.gz", full.names = TRUE))
+cutRs <- sort(list.files(path.cut, pattern = "cut-R2.fastq.gz", full.names = TRUE))
+
+# Extract sample names, assuming filenames have format:
+
+sample.namesF <- sapply(strsplit(basename(cutFs), "_cut"), `[`, 1) # Assumes filename = samplename_XXX.fastq.gz
+sample.namesR <- sapply(strsplit(basename(cutRs), "_cut"), `[`, 1) # Assumes filename = samplename_XXX.fastq.gz
+if(identical(sample.namesF, sample.namesR)) {print("Files are still matching.....congratulations")
+} else {stop("Forward and reverse files do not match.")}
+names(cutFs) <- sample.namesF
+names(cutRs) <- sample.namesR
+
+# Assign filenames to the fastq.gz files of filtered and trimmed reads.
+
+filtFs <- file.path(path.filt, paste0(sample.namesF, "_filt-R1.fastq.gz"))
+filtRs <- file.path(path.filt, paste0(sample.namesR, "_filt-R2.fastq.gz"))
+
+
+out <- filterAndTrim(cutFs, filtFs, cutRs, filtRs,
+                     truncLen = 230,  maxN = 0, maxEE = 1,
+                     truncQ = 2, minLen = 50, rm.phix = TRUE,
+                     compress = TRUE)
+
+saveRDS(out, "Track.rds")
+
+set.seed(100) # set seed to ensure that randomized steps are replicatable
+errF <- learnErrors(filtFs, multithread=T)
+saveRDS(errF, "errF.rds")
+errR <- learnErrors(filtRs, multithread=T)
+saveRDS(errR, "errR.rds")
+
+pdf("Errorrates_fwd.pdf",width=5,height=5)
+plotErrors(errF, nominalQ=TRUE)
+dev.off()
+pdf("Errorrates_rvs.pdf",width=5,height=5)
+plotErrors(errR, nominalQ=TRUE)
+dev.off()
+
+#errF <- readRDS("errF.rds")
+#errR <- readRDS("errR.rds")
+
+dadaFs <- dada(filtFs, err=errF, multithread=T, pool="pseudo")
+names(dadaFs) <- sample.namesF
+saveRDS(dadaFs, "dadaF.rds")
+
+dadaRs <- dada(filtRs, err=errR, multithread=T, pool="pseudo")
+names(dadaFs) <- sample.namesR
+saveRDS(dadaRs, "dadaR.rds")
+
+mergers <- mergePairs(dadaFs, filtFs, dadaRs,filtRs,
+                      minOverlap=20, maxMismatch=2, verbose=TRUE)
+saveRDS(mergers, "mergers.rds")
+
+seqtab <- makeSequenceTable(mergers)
+saveRDS(seqtab, "seqtab.rds")
+
+
+seqtab_filtered <- seqtab[,nchar(colnames(seqtab)) %in% seq(440,460]
+saveRDS(seqtab_filtered, "seqtab_filtered.rds")
+
+sl <- hist(nchar(getSequences(seqtab)), main="Distribution of sequence lengths", breaks=50)
+axis(1,at=seq(300,500,by=10))
+jpeg(file="Seqlength.jpg",res=450, width=15, height=8, units="in")
+sl
+dev.off()
+
+seqtab_nochim <- removeBimeraDenovo(seqtab_filtered, method="consensus", multithread=TRUE, verbose=TRUE)
+saveRDS(seqtab_nochim, "seqtab_nochim.rds")
+
+taxa <- assignTaxonomy(seqtab_nochim, "silva_nr99_v138.1_train_set.fa.gz", multithread=TRUE)
+taxa <- addSpecies(taxa, "silva_species_assignment_v138.1.fa.gz")
+saveRDS(taxa, "Taxa.rds")
+
+getN <- function(x)sum(getUniques(x))
+track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab), rowSums(seqtab_filtered), rowSums(seqtab_nochim))
+colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "seqtab", "seqtab_filt", "nonchim")
+rownames(track) <- sample.namesF
+write.csv(track,"SeqOV.csv")
