@@ -1,0 +1,104 @@
+taxa <- readRDS("Taxa.rds")
+seqtab_nochim <- readRDS("seqtab_nochim.rds")
+#remove samples from seqtab that are full watercolumn
+rownames(seqtab_nochim)
+seqtab_nochim <- seqtab_nochim[-c(73,153,157),]
+
+samdf <- read.csv("samdf.csv", head=T, row.names = 1)
+ps <- phyloseq(otu_table(seqtab_nochim, taxa_are_rows=FALSE),
+               sample_data(samdf),
+               tax_table(taxa))
+dna <- Biostrings::DNAStringSet(taxa_names(ps))
+names(dna) <- taxa_names(ps)
+ps <- merge_phyloseq(ps, dna)
+taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
+ps
+saveRDS(ps, "ps_BPBN.rds")
+
+#quality checks and prelim insight before decontam
+df <- as.data.frame(sample_data(ps)) # Put sample_data into a ggplot-friendly data.frame
+df$LibrarySize <- sample_sums(ps)
+df <- df[order(df$LibrarySize),]
+df$Index <- seq(nrow(df))
+ggplot(data=df, aes(x=Index, y=LibrarySize, color=Category)) + geom_point()
+#save
+a.ord <- ordinate(ps, "PCoA", "bray")
+plot_ordination(ps, a.ord, type="samples", color="Category")
+#save
+plot_richness(ps, x="Category", measures=c("Shannon", "Simpson"))
+#save
+ps.prop <- transform_sample_counts(ps, function(otu) otu/sum(otu))
+ord.nmds.bray <- ordinate(ps.prop, method="NMDS", distance="bray")
+plot_ordination(ps.prop, ord.nmds.bray, color="Category", title="Bray NMDS")
+#save
+top20 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:15]
+ps.top20 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
+ps.top20 <- prune_taxa(top20, ps.top20)
+plot_bar(ps.top20, x="Category", fill="Genus") + facet_wrap(~Category, scales="free_x")
+#save
+
+######## export tables from ps object
+OTU1 = as(otu_table(ps), "matrix")
+# transpose if necessary
+if(taxa_are_rows(ps)){OTU1 <- t(OTU1)}
+# Coerce to data.frame
+OTUdf = as.data.frame(OTU1)
+taxa_names(ps) <- paste0("ASV", seq(ntaxa(ps)))
+Taxa1 = as(tax_table(ps), "matrix")
+# transpose if necessary
+if(taxa_are_rows(ps)){OTU1 <- t(OTU1)}
+# Coerce to data.frame
+Taxadf = as.data.frame(Taxa1)
+OTUdf <- t(OTUdf)
+write.table(OTUdf,file="PS_ASVs.csv",sep=",")
+write.table(Taxadf,file="PS_Taxa.csv",sep=",")
+#export sequeces if need be
+asv_headers <- vector(dim(seqtab_nochim)[2], mode="character")
+asv_seqs <- colnames(seqtab_nochim)
+for (i in 1:dim(seqtab_nochim)[2]) {
+  asv_headers[i] <- paste(">ASV", i, sep="")
+}
+asv_fasta <- c(rbind(asv_headers, asv_seqs))
+write(asv_fasta, "Sequences_BPBN.fa")
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+######################## decontam the whole dataset #########################################
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+library(decontam)
+library(dplyr)
+sample_data(ps)$is.neg <- sample_data(ps)$Category == "Control"
+contamdf.prev05 <- isContaminant(ps, method="prevalence", neg="is.neg", threshold=0.5)
+table(contamdf.prev05$contaminant)
+#grab the row indices that correspond with identified contaminants to locate taxonomic information 
+#in the corresponding OTU file
+row_indices <- which(contamdf.prev05$contaminant) 
+# Make phyloseq object of presence-absence in negative controls and true samples
+ps.pa <- transform_sample_counts(ps, function(abund) 1*(abund>0))
+ps.pa.neg <- prune_samples(sample_data(ps.pa)$Category == "Control", ps.pa)
+ps.pa.pos <- prune_samples(sample_data(ps.pa)$Category == "True sample", ps.pa)
+# Make data.frame of prevalence in positive and negative samples
+df.pa <- data.frame(pa.pos=taxa_sums(ps.pa.pos), pa.neg=taxa_sums(ps.pa.neg),
+                    contaminant=contamdf.prev05$contaminant)
+ggplot(data=df.pa, aes(x=pa.neg, y=pa.pos, color=contaminant)) + geom_point() +
+  xlab("Prevalence (Negative Controls)") + ylab("Prevalence (True Samples)")
+
+contamdf.prev05_list <- contamdf.prev05 %>% filter(contaminant == "FALSE")
+noncontamASVs <- as.list(rownames(contamdf.prev05_list))
+
+
+asv_table <- read.csv("unclean_BPBN.csv", head=T)
+asv_table_clean <- asv_table %>% filter(asv %in% noncontamASVs)
+#dismiss E and C sample
+excluded_vars <- c("RSW_LB1", "RSW_LB2", "RSW_NEG1", "RSW_NEG2", "RSW_NEG3")
+asv_table_clean <- asv_table_clean %>% select(-one_of(excluded_vars))
+
+# dismiss non target taxonomy hit sequences
+asv_table_clean <- asv_table_clean %>% 
+  filter(Kingdom == "Bacteria") %>% 
+  filter(Phylum != "NA") %>%
+  filter(Order != "Chloroplast") %>% 
+  filter(Family != "Mitochrondia") %>%
+  filter(Class != "BD2-11 terrestrial group")
+
+write.csv(asv_table_clean, "clean_BNBP.csv")
+
+## remove ASVs with reads < 10
