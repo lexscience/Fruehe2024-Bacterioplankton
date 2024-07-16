@@ -3,7 +3,6 @@ Pelagic particle-associated bacterioplankton play crucial roles in marine ecosys
 
 ## Table of Contents
 * [Data storage and availability](#data-avail)
-* [Sampling Overview](#sampling-overview)
 * [Water chemistry data processing](#water-chem-data)
 * [Sequence data processing](#rawread-proc)
 * [Data analysis](#stats)
@@ -18,14 +17,11 @@ All code used to analyse and visualise data is stored in this GitHub repository.
 
 ## Sequence data processing
 
-[Cutadapt&DADA2](https://github.com/lexscience/Particle-associated-bacterioplankton-2024_upstream/blob/main/Cutadapt%20%26%20DADA2)
-[PostDADA2_cleaning](https://github.com/lexscience/Particle-associated-bacterioplankton-2024_upstream/blob/main/postDADA2_cleaning)
+[Cutadapt&DADA2](https://github.com/lexscience/Particle-associated-bacterioplankton-2024_upstream/blob/main/Cutadapt%20%26%20DADA2) for initial raw sequence data processing.
+[PostDADA2_cleaning](https://github.com/lexscience/Particle-associated-bacterioplankton-2024_upstream/blob/main/postDADA2_cleaning) for data wrangling using phyloseq and decontam.
 
 ## Water chemistry data processing
 The code for processing and averaging CTD raw data from all 108 stations can be found here [Water chemistry data processing](https://github.com/lexscience/Particle-associated-bacterioplankton-2024_upstream/blob/main/R_SeaBird_CTD_ASTcode)
-
-
-
 
 
 ## Contact
