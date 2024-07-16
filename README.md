@@ -1,7 +1,7 @@
-# Comprehensive assessment of pelagic particle-associated bacterioplankton communities across the Red Sea
+![image](https://github.com/user-attachments/assets/95295477-e47d-40a6-b67e-377fd63d3c4b)# Comprehensive assessment of pelagic particle-associated bacterioplankton communities across the Red Sea
 
 ## Abstract
-TTBD 
+Pelagic particle-associated bacterioplankton play crucial roles in marine ecosystems, influencing biogeochemical cycling and ecosystem functioning. However, their diversity, composition, and dynamics remain poorly understood, particularly in unique environments such as the Red Sea. In this study, we employed eDNA metabarcoding to comprehensively characterise bacterioplankton communities associated with pelagic particles in a three-dimensional assessment spanning depths from the surface to up to 2300 m along the full length of the eastern Red Sea within the exclusive economic zone of the Kingdom of Saudi Arabia. Our results reveal a diverse assemblage of taxa, with Proteobacteria, Cyanobacteria and Planktomycetota being the dominant phyla. We identified pronounced spatial variability in community composition among five major Red Sea geographical regions with a third of all amplicon sequence variants being unique to the Southern Red Sea in contrast to a very homogenous distribution along the water column depth gradient. Our findings contribute to a deeper understanding of microbial ecology in the Red Sea and provide valuable insights into the factors governing pelagic particle-associated bacterioplankton communities in this basin.
 
 ## Table of Contents
 * [Data storage and availability](#data-avail)
