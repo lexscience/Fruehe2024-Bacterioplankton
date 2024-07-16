@@ -22,7 +22,7 @@ All code used to analyse and visualise data is stored in this GitHub repository.
 [PostDADA2_cleaning]([https://github.com/lexscience/Particle-associated-bacterioplankton-2024_upstream/blob/main/2)postDADA2_cleaning)]
 
 ## Water chemistry data processing
-The code for processing and averaging CTD raw data from all 108 stations can be found here [Water chemistry data processing]([https://github.com/lexscience/Particle-associated-bacterioplankton-2024_upstream/blob/main/R_SeaBird_CTD_ASTcode)]
+The code for processing and averaging CTD raw data from all 108 stations can be found here [Water chemistry data processing](https://github.com/lexscience/Particle-associated-bacterioplankton-2024_upstream/blob/main/R_SeaBird_CTD_ASTcode)
 
 
 
