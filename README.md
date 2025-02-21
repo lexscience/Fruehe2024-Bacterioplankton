@@ -1,5 +1,10 @@
+## Particle-associated bacterioplankton communities across the Red Sea 
+Environmental Microbiology
+
+
 ## Abstract
-Pelagic particle-associated bacterioplankton play crucial roles in marine ecosystems, influencing biogeochemical cycling and ecosystem functioning. However, their diversity, composition, and dynamics remain poorly understood, particularly in unique environments such as the Red Sea. In this study, we employed eDNA metabarcoding to comprehensively characterise bacterioplankton communities associated with pelagic particles in a three-dimensional assessment spanning depths from the surface to up to 2300 m along the full length of the eastern Red Sea within the exclusive economic zone of the Kingdom of Saudi Arabia. Our results reveal a diverse assemblage of taxa, with Proteobacteria, Cyanobacteria and Planktomycetota being the dominant phyla. We identified pronounced spatial variability in community composition among five major Red Sea geographical regions with a third of all amplicon sequence variants being unique to the Southern Red Sea in contrast to a very homogenous distribution along the water column depth gradient. Our findings contribute to a deeper understanding of microbial ecology in the Red Sea and provide valuable insights into the factors governing pelagic particle-associated bacterioplankton communities in this basin.
+Pelagic particle-associated bacterioplankton play crucial roles in marine ecosystems, influencing biogeochemical cycling and ecosystem functioning. However, their diversity, composition, and dynamics remain poorly understood, particularly in unique environments such as the Red Sea. In this study, we employed eDNA metabarcoding to comprehensively characterise bacterioplankton communities associated with pelagic particles in a three-dimensional assessment spanning depths from the surface to up to a depth of 2300 m along the full length of the eastern Red Sea within the exclusive economic zone of the Kingdom of Saudi Arabia. Our results reveal a diverse assemblage of taxa, with Pseudomonadota, Cyanobacteriota, and Planctomycetota being the dominant phyla. We identified pronounced spatial variability in community composition among five major Red Sea geographical regions with a third of all amplicon sequence variants being unique to the Southern Red Sea in contrast to a relatively homogenous distribution along the water column depth gradient. Our findings contribute to a deeper understanding of microbial ecology in the Red Sea and provide valuable insights into the factors governing pelagic particle-associated bacterioplankton communities in this basin. 
+
 
 ## Table of Contents
 * [Data storage and availability](#data-avail)
@@ -12,7 +17,7 @@ Pelagic particle-associated bacterioplankton play crucial roles in marine ecosys
 ## Data storage and availability
 
 Raw sequencing data can be accessed in the Sequence Read Archive (SRA) of NCBI under PRJNA980126. 
-Supplementary files and non-sequencing data are deposited in this GitHub repository, as well as in DRYAD ----enter link-----
+Supplementary files and non-sequencing data are deposited in this GitHub repository and on Dryad under DOI: 10.5061/dryad.vt4b8gv1k. 
 All code used to analyse and visualise data is stored in this GitHub repository. 
 
 ## Sequence data processing
